@@ -12,7 +12,7 @@ conda update -n base -y -c defaults conda
 ## Install Drop-seq analysis software
 conda create -n dropseq-analysis -y -c conda-forge -c bioconda \
 dropseq_tools star picard fastqc sra-tools \
-r-tidyverse r-seurat umap-learn 
+r-tidyverse r-seurat umap-learn ucsc-cell-browser
 
 ## Update Drop-seq analysis environment
 conda update -n dropseq-analysis -y -c conda-forge -c bioconda --all
