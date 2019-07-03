@@ -139,3 +139,20 @@ Idents(integrated.data) <- "integrated_snn_res.1.2"
 pdf("./plots/dimplot_ideal-resolution.pdf")
 DimPlot(integrated.data, reduction="umap", label=TRUE) + scale_color_viridis_d()
 dev.off()
+
+## Marker analysis.
+## ----------
+
+markers <- FindAllMarkers(
+	integrated.data,
+	logfc.threshold=log(1),
+	test.use="wilcox",
+	min.pct=0.2,
+	only.pos=FALSE,
+	return.thresh=0.05
+)
+
+## Export data for cell browser.
+## ----------
+
+
