@@ -126,9 +126,16 @@ integrated.data <- FindClusters(integrated.data, resolution=c(seq(0.2, 1.4, 0.2)
 
 pdf("./plots/dimplot.pdf")
 for (n in seq(0.2, 1.4, 0.2)) {
-        Idents(integrated.data) <- paste0("integrated_snn_res.",n)]]
+        Idents(integrated.data) <- paste0("integrated_snn_res.",n)
         p <- DimPlot(integrated.data, reduction="umap", label=TRUE)
-        p <- AugmentPlot(p, dpi=300)
         print(p)
 }
+dev.off()
+
+# Ideal resolution seems to be ~1.2.
+
+Idents(integrated.data) <- "integrated_snn_res.1.2"
+
+pdf("./plots/dimplot_ideal-resolution.pdf")
+DimPlot(integrated.data, reduction="umap", label=TRUE) + scale_color_viridis_d()
 dev.off()
