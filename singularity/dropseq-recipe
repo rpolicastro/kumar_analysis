@@ -1,0 +1,21 @@
+Bootstrap: docker
+From: continuumio/miniconda3
+
+%post
+
+## Add conda to path
+export PATH=$PATH:/opt/conda/bin
+
+## Update conda
+conda update -n base -y -c defaults conda
+
+## Install Drop-seq analysis software
+conda create -n dropseq-analysis -y -c conda-forge -c bioconda \
+dropseq_tools star picard \
+r-tidyverse r-seurat umap-learn 
+
+## Update Drop-seq analysis environment
+conda update -n dropseq-analysis -y -c conda-forge -c bioconda --all
+
+## Clean up extra files
+conda clean -y --all
