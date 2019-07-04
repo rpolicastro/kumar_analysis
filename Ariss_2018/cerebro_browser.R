@@ -49,4 +49,12 @@ exportFromSeurat(
 
 ## Load back up cerebro file to change expression values.
 
-cerebro.file <- readRDS("
+cerebro.file <- readRDS("cerebro/ariss_2018_browser.crb")
+
+## Switch to SCT expression values in cerebro file.
+
+cerebro.file$expression <- integrated.data@assays$SCT@data
+
+## Resave edited cerebro file.
+
+saveRDS(cerebro.file, "cerebro/ariss_2018_browser.crb")
