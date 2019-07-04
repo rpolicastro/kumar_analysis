@@ -144,7 +144,7 @@ Idents(integrated.data) <- "integrated_snn_res.1.2"
 ## Create dimplot of ideal resolution.
 
 pdf("./plots/dimplot_ideal-resolution.pdf")
-DimPlot(integrated.data, reduction="umap", label=TRUE) + scale_color_viridis_d()
+DimPlot(integrated.data, reduction="umap", label=TRUE)
 dev.off()
 
 ## Marker analysis.
