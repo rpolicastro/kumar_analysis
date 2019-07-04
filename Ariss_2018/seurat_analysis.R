@@ -2,6 +2,9 @@
 
 library("tidyverse")
 library("Seurat")
+library("future")
+
+cores <- 4
 
 ############################################
 ## scRNA-seq Analysis of Ariss et al., 2018
@@ -134,7 +137,11 @@ dev.off()
 
 # Ideal resolution seems to be ~1.2.
 
+## Set active identity to ideal resolution.
+
 Idents(integrated.data) <- "integrated_snn_res.1.2"
+
+## Create dimplot of ideal resolution.
 
 pdf("./plots/dimplot_ideal-resolution.pdf")
 DimPlot(integrated.data, reduction="umap", label=TRUE) + scale_color_viridis_d()
@@ -143,16 +150,22 @@ dev.off()
 ## Marker analysis.
 ## ----------
 
+## Getting markers.
+
+plan("multiprocess", workers = 4)
+
 markers <- FindAllMarkers(
 	integrated.data,
-	logfc.threshold=log(1),
+	logfc.threshold=log(1.5),
 	test.use="wilcox",
-	min.pct=0.2,
+	min.pct=0.25,
 	only.pos=FALSE,
 	return.thresh=0.05
 )
 
-## Export data for cell browser.
-## ----------
+## Export markers file.
 
-
+write.table(
+	markers, "results/cluster_markers.tsv",
+	sep="\t", col.names=TRUE, row.names=FALSE, quote=FALSE, na=""
+)
