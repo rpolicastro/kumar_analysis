@@ -4,7 +4,9 @@ library("tidyverse")
 library("Seurat")
 library("future")
 
-cores <- 4
+# 1Gb is 1000*(1024^2)) for setting future.globals.maxSize
+options(future.globals.maxSize=1048576000)
+plan("multiprocess", workers=6)
 
 ############################################
 ## scRNA-seq Analysis of Ariss et al., 2018
@@ -25,7 +27,10 @@ counts <- list.files("counts", pattern="*DMS") %>% file.path("counts",.) %>%
 ## Creating seurat objects.
 ## ----------
 
-seurat.obj <- map(names(counts), ~ CreateSeuratObject(counts=counts[[.]], project=.))
+seurat.obj <- counts %>%
+	names %>%
+	map(~ CreateSeuratObject(counts=counts[[.]], project=.)) %>%
+	setNames(names(counts))
 
 ## Basic cell quality control.
 ## ----------
@@ -34,8 +39,9 @@ seurat.obj <- map(names(counts), ~ CreateSeuratObject(counts=counts[[.]], projec
 
 pdf("./plots/QC_violin-plot.pdf")
 map(
-	names(count.files),
-	~ VlnPlot(seurat.obj[[.]], features=c("nCount_RNA", "nFeature_RNA"), ncol=2)
+	names(seurat.obj),
+	~ VlnPlot(seurat.obj[[.]], features=c("nCount_RNA", "nFeature_RNA"), ncol=2) +
+		ggtitle(paste("Sample:",.))
 )
 dev.off()
 
@@ -44,10 +50,8 @@ dev.off()
 seurat.obj <- map(
 	seurat.obj,
 	~ subset(., subset =
-		nFeature_RNA > 250 &
-		nFeature_RNA < 1000 &
-		nCount_RNA > 500 &
-		nCount_RNA < 5000
+		(nFeature_RNA >= 200 & nFeature_RNA <= 3000) &
+		(nCount_RNA >= 500 & nCount_RNA <= 7500)
 	)
 )
 
@@ -66,10 +70,7 @@ seurat.obj <- map(seurat.obj, ~ RunPCA(., npcs=50))
 ## Plotting elbow plots to pick ideal PCA number.
 
 pdf("./plots/elbow-plots.pdf")
-map(
-	names(count.files),
-	~ ElbowPlot(seurat.obj[[.]], ndims=50)
-)
+map(seurat.obj, ~ ElbowPlot(., ndims=50))
 dev.off()
 
 # Elbow is around 10-15 as determined by visual inspection of elbow plot.
@@ -92,7 +93,10 @@ DefaultAssay(integrated.data) <- "integrated"
 
 ## Scale data.
 
-integrated.data <- ScaleData(integrated.data)
+integrated.data <- ScaleData(
+	integrated.data,
+	vars.to.regress=c("nFeature_SCT", "nCount_SCT")
+)
 
 ## Dimensionality reduction.
 ## ----------
@@ -119,27 +123,27 @@ integrated.data <- RunUMAP(integrated.data, reduction="pca", dims=1:30)
 
 ## Finding neighbors.
 
-integrated.data <- FindNeighbors(integrated.data, dims=1:30)
+integrated.data <- FindNeighbors(integrated.data, dims=1:30,)
 
 ## Finding clusters.
 
-integrated.data <- FindClusters(integrated.data, resolution=c(seq(0.2, 1.4, 0.2)))
+integrated.data <- FindClusters(integrated.data, resolution=c(seq(0.2, 1.6, 0.2)))
 
 ## Plotting dimplots to find ideal resolution.
 
 pdf("./plots/dimplot.pdf")
-for (n in seq(0.2, 1.4, 0.2)) {
+for (n in seq(0.2, 1.6, 0.2)) {
         Idents(integrated.data) <- paste0("integrated_snn_res.",n)
-        p <- DimPlot(integrated.data, reduction="umap", label=TRUE)
+        p <- DimPlot(integrated.data, reduction="umap", label=TRUE) + ggtitle(paste0("Resolution_",n))
         print(p)
 }
 dev.off()
 
-# Ideal resolution seems to be ~1.2.
+# Ideal resolution seems to be ~1.6.
 
 ## Set active identity to ideal resolution.
 
-Idents(integrated.data) <- "integrated_snn_res.1.2"
+Idents(integrated.data) <- "integrated_snn_res.1.6"
 
 ## Create dimplot of ideal resolution.
 
@@ -152,15 +156,13 @@ dev.off()
 
 ## Getting markers.
 
-plan("multiprocess", workers = 4)
-
 markers <- FindAllMarkers(
 	integrated.data,
 	logfc.threshold=log(1.5),
 	test.use="wilcox",
 	min.pct=0.25,
 	only.pos=FALSE,
-	return.thresh=0.05
+	return.thresh=0.05,
 )
 
 ## Export markers file.
